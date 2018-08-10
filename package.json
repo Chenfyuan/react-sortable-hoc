@@ -6,15 +6,15 @@
     "name": "chenfyuan",
     "email": "1034023223@qq.com"
   },
-  "user": "clauderic",
-  "homepage": "https://github.com/clauderic/react-sortable-hoc",
+  "user": "",
+  "homepage": "https://github.com/Chenfyuan/react-sortable-hoc.git",
   "main": "dist/commonjs/index.js",
   "jsnext:main": "dist/es6/index.js",
   "types": "types/index.d.ts",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/clauderic/react-sortable-hoc.git"
+    "url": "https://github.com/Chenfyuan/react-sortable-hoc.git"
   },
   "bugs": {
     "url": "https://github.com/clauderic/react-sortable-hoc/issues"
