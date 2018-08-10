@@ -1,6 +1,6 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import {findDOMNode} from 'react-dom';
+import { findDOMNode } from 'react-dom';
 import invariant from 'invariant';
 
 import Manager from '../Manager';
@@ -19,7 +19,7 @@ import {
 } from '../utils';
 
 // Export Higher Order Sortable Container Component
-export default function sortableContainer(WrappedComponent, config = {withRef: false}) {
+export default function sortableContainer(WrappedComponent, config = { withRef: false }) {
   return class extends Component {
     constructor(props) {
       super(props);
@@ -48,7 +48,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
       distance: 0,
       useWindowAsScrollContainer: false,
       hideSortableGhost: true,
-      shouldCancelStart: function(e) {
+      shouldCancelStart: function (e) {
         // Cancel sorting if the event target is an `input`, `textarea`, `select` or `option`
         const disabledElements = ['input', 'textarea', 'select', 'option', 'button'];
 
@@ -58,7 +58,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
       },
       lockToContainerEdges: false,
       lockOffset: '50%',
-      getHelperDimensions: ({node}) => ({
+      getHelperDimensions: ({ node }) => ({
         width: node.offsetWidth,
         height: node.offsetHeight,
       }),
@@ -151,7 +151,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
     }
 
     handleStart = event => {
-      const {distance, shouldCancelStart} = this.props;
+      const { distance, shouldCancelStart } = this.props;
 
       if (event.button === 2 || shouldCancelStart(event)) {
         return false;
@@ -168,15 +168,15 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
         this.nodeIsChild(node) &&
         !this.state.sorting
       ) {
-        const {useDragHandle} = this.props;
-        const {index, collection} = node.sortableInfo;
+        const { useDragHandle } = this.props;
+        const { index, collection } = node.sortableInfo;
 
         if (
           useDragHandle && !closest(event.target, el => el.sortableHandle != null)
         )
           return;
 
-        this.manager.active = {index, collection};
+        this.manager.active = { index, collection };
 
         /*
 				 * Fixes a bug in Firefox where the :active state of anchor tags
@@ -205,7 +205,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
     };
 
     handleMove = event => {
-      const {distance, pressThreshold} = this.props;
+      const { distance, pressThreshold } = this.props;
 
       if (!this.state.sorting && this._touched) {
         const position = getPosition(event);
@@ -225,7 +225,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
     };
 
     handleEnd = () => {
-      const {distance} = this.props;
+      const { distance } = this.props;
 
       this._touched = false;
 
@@ -253,12 +253,12 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
           onSortStart,
           useWindowAsScrollContainer,
         } = this.props;
-        const {node, collection} = active;
-        const {index} = node.sortableInfo;
+        const { node, collection } = active;
+        const { index } = node.sortableInfo;
         const margin = getElementMargin(node);
 
         const containerBoundingRect = this.container.getBoundingClientRect();
-        const dimensions = getHelperDimensions({index, node, collection});
+        const dimensions = getHelperDimensions({ index, node, collection });
 
         this.node = node;
         this.margin = margin;
@@ -368,28 +368,48 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
         });
 
         if (onSortStart) {
-          onSortStart({node, index, collection}, event);
+          onSortStart({ node, index, collection }, event);
         }
       }
     };
-
-    handleSortMove = event => {
-      const {onSortMove} = this.props;
-      event.preventDefault(); // Prevent scrolling on mobile
-
-      this.updatePosition(event);
+    /***modify by chenfyuan */
+    _handleSortMove = event => {
       this.animateNodes();
       this.autoscroll();
+      if (window.requestAnimationFrame)
+        this.sortMoveAF = null;
+      else setTimeout(() => {
+        this.sortMoveAF = null;
+      }, 1000 / 60); // aim for 60 fps
+    };
 
+    handleSortMove = event => {
+      const { onSortMove } = this.props;
+      event.preventDefault(); // Prevent scrolling on mobile
+      if (this.sortMoveAF) {
+        return;
+      }
+      this.updatePosition(event);
+      /**use  requestAnimationFrame make ie and edge smooth*/
+      if (window.requestAnimationFrame) {
+        this.sortMoveAF = window.requestAnimationFrame(this._handleSortMove);
+      } else {
+        this.sortMoveAF = true;
+        this._handleSortMove(); // call inner function now if no animation frame
+      }
       if (onSortMove) {
         onSortMove(event);
       }
     };
 
     handleSortEnd = event => {
-      const {hideSortableGhost, onSortEnd} = this.props;
-      const {collection} = this.manager.active;
-
+      const { hideSortableGhost, onSortEnd } = this.props;
+      const { collection } = this.manager.active;
+      // Remove the move handler if there's a frame that hasn't run yet.
+      if (window.cancelAnimationFrame && this.sortMoveAF) {
+        window.cancelAnimationFrame(this.sortMoveAF);
+        this.sortMoveAF = null;
+      }
       // Remove the event listeners if the node is still in the DOM
       if (this.listenerNode) {
         events.move.forEach(eventName =>
@@ -449,8 +469,8 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
     };
 
     getLockPixelOffsets() {
-      const {width, height} = this;
-      const {lockOffset} = this.props;
+      const { width, height } = this;
+      const { lockOffset } = this.props;
       const offsets = Array.isArray(lockOffset)
         ? lockOffset
         : [lockOffset, lockOffset];
@@ -458,20 +478,20 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
       invariant(
         offsets.length === 2,
         'lockOffset prop of SortableContainer should be a single ' +
-          'value or an array of exactly two values. Given %s',
+        'value or an array of exactly two values. Given %s',
         lockOffset
       );
 
       const [minLockOffset, maxLockOffset] = offsets;
 
       return [
-        getLockPixelOffset({lockOffset: minLockOffset, width, height}),
-        getLockPixelOffset({lockOffset: maxLockOffset, width, height}),
+        getLockPixelOffset({ lockOffset: minLockOffset, width, height }),
+        getLockPixelOffset({ lockOffset: maxLockOffset, width, height }),
       ];
     }
 
     updatePosition(event) {
-      const {lockAxis, lockToContainerEdges} = this.props;
+      const { lockAxis, lockToContainerEdges } = this.props;
 
       const offset = getPosition(event);
       const translate = {
@@ -520,7 +540,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
     }
 
     animateNodes() {
-      const {transitionDuration, hideSortableGhost, onSortOver} = this.props;
+      const { transitionDuration, hideSortableGhost, onSortOver } = this.props;
       const nodes = this.manager.getOrderedRefs();
       const containerScrollDelta = {
         left: this.container.scrollLeft - this.initialScroll.left,
@@ -538,7 +558,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
       this.newIndex = null;
 
       for (let i = 0, len = nodes.length; i < len; i++) {
-        const {node} = nodes[i];
+        const { node } = nodes[i];
         const index = node.sortableInfo.index;
         const width = node.offsetWidth;
         const height = node.offsetHeight;
@@ -551,7 +571,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
           x: 0,
           y: 0,
         };
-        let {edgeOffset} = nodes[i];
+        let { edgeOffset } = nodes[i];
 
         // If we haven't cached the node's offsetTop / offsetLeft value
         if (!edgeOffset) {
@@ -596,7 +616,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
               index < this.index &&
               (
                 ((sortingOffset.left + windowScrollDelta.left) - offset.width <= edgeOffset.left &&
-                (sortingOffset.top + windowScrollDelta.top) <= edgeOffset.top + offset.height) ||
+                  (sortingOffset.top + windowScrollDelta.top) <= edgeOffset.top + offset.height) ||
                 (sortingOffset.top + windowScrollDelta.top) + offset.height <= edgeOffset.top
               )
             ) {
@@ -620,7 +640,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
               index > this.index &&
               (
                 ((sortingOffset.left + windowScrollDelta.left) + offset.width >= edgeOffset.left &&
-                (sortingOffset.top + windowScrollDelta.top) + offset.height >= edgeOffset.top) ||
+                  (sortingOffset.top + windowScrollDelta.top) + offset.height >= edgeOffset.top) ||
                 (sortingOffset.top + windowScrollDelta.top) + offset.height >= edgeOffset.top + height
               )
             ) {
@@ -754,7 +774,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
     }
 
     getContainer() {
-      const {getContainer} = this.props;
+      const { getContainer } = this.props;
 
       if (typeof getContainer !== 'function') {
         return findDOMNode(this);
